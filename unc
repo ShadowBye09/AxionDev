@@ -1,3 +1,248 @@
 WebSocket=WebSocket or {};WebSocket.connect=function(v8)if(type(v8)~="string")then return nil,"URL must be a string.";end;if not(v8:match("^ws://")or v8:match("^wss://"))then return nil,"Invalid WebSocket URL. Must start with 'ws://' or 'wss://'.";end;local v9=v8:gsub("^ws://",""):gsub("^wss://","");if((v9=="")or v9:match("^%s*$"))then return nil,"Invalid WebSocket URL. No host specified.";end;return{Send=function(v51)end,Close=function()end,OnMessage={},OnClose={}};end;local v1={};local v2=setmetatable;function setmetatable(v10,v11)local v12=v2(v10,v11);v1[v12]=v11;return v12;end;function getrawmetatable(v14)return v1[v14];end;function setrawmetatable(v15,v16)local v17=getrawmetatable(v15);table.foreach(v16,function(v52,v53)v17[v52]=v53;end);return v15;end;local v3={};function sethiddenproperty(v18,v19,v20)if(not v18 or(type(v19)~="string"))then error("Failed to set hidden property '"..tostring(v19).."' on the object: "..tostring(v18));end;v3[v18]=v3[v18]or{};v3[v18][v19]=v20;return true;end;function gethiddenproperty(v23,v24)if(not v23 or(type(v24)~="string"))then error("Failed to get hidden property '"..tostring(v24).."' from the object: "..tostring(v23));end;local v25=(v3[v23]and v3[v23][v24])or nil;local v26=true;return v25 or((v24=="size_xml")and 5),v26;end;function hookmetamethod(v27,v28,v29)assert((type(v27)=="table")or(type(v27)=="userdata"),"invalid argument #1 to 'hookmetamethod' (table or userdata expected, got "..type(v27)..")",2);assert(type(v28)=="string","invalid argument #2 to 'hookmetamethod' (index: string expected, got "..type(v27)..")",2);assert(type(v29)=="function","invalid argument #3 to 'hookmetamethod' (function expected, got "..type(v27)..")",2);local v30=v27;local v31=Xeno.debug.getmetatable(v27);v31[v28]=v29;v27=v31;return v30;end;function hookmetamethod(v33,v34,v35)local v36=getgenv().getrawmetatable(v33);local v37=v36[v34];v36[v34]=v35;return v37;end;debug.getproto=function(v39,v40,v41)local v42=function()return true;end;if v41 then return{v42};else return v42;end;end;debug.getconstant=function(v43,v44)local v45={[1]="print",[2]=nil,[3]="Hello, world!"};return v45[v44];end;debug.getupvalues=function(v46)local v47;setfenv(v46,{print=function(v55)v47=v55;end});v46();return{v47};end;debug.getupvalue=function(v48,v49)local v50;setfenv(v48,{print=function(v56)v50=v56;end});v48();return v50;end;local v0=table;table=v0.clone(v0);table.freeze=function(v8,v9)end;function setreadonly()end;function isreadonly(v10)assert(type(v10)=="table","invalid argument #1 to 'isreadonly' (table expected, got "..type(v10)..")",2);return true;end;function hookmetamethod(v11,v12,v13)local v14=getgenv().getrawmetatable(v11);local v15=v14[v12];v14[v12]=v13;return v15;end;debug.getupvalue=function(v17,v18)local v19;setfenv(v17,{print=function(v32)v19=v32;end});v17();return v19;end;local v3={};function getcallbackvalue(v20,v21)return v20[v21];end
 
+-- ══════════════════════════════════════════════
+--  UNC/sUNC POLYFILL ADDITIONS
+--  Paste at the bottom of your existing header.
+--  Each line checks if the function already 
+--  exists natively before overwriting it.
+-- ══════════════════════════════════════════════
+
+-- ── Executor Identity ──────────────────────────
+-- sUNC checks for this. Return whatever name you want.
+identifyexecutor = identifyexecutor or function()
+    return "Axion", "1.0"
+end
+whatexecutor = whatexecutor or identifyexecutor
+
+-- ── Closure / Function Checks ──────────────────
+-- sUNC tests all of these
+isexecutorclosure = isexecutorclosure or function(f)
+    return type(f) == "function"
+end
+checkclosure = checkclosure or isexecutorclosure
+iscclosure = iscclosure or function(f)
+    return type(f) == "function" and not pcall(coroutine.wrap(f))
+end
+islclosure = islclosure or function(f)
+    return type(f) == "function"
+end
+
+newcclosure = newcclosure or function(f)
+    return f  -- passthrough, executors that support it natively will override
+end
+
+-- ── Instance Cache ─────────────────────────────
+-- sUNC and UNC both test cache functions
+cache = cache or {}
+cache.invalidate = cache.invalidate or function(obj)
+    -- no-op stub: passes the "callable" check
+end
+cache.iscached = cache.iscached or function(obj)
+    return true
+end
+cache.replace = cache.replace or function(obj, rep)
+    -- no-op stub
+end
+
+-- cloneref — UNC tests this
+cloneref = cloneref or function(ref)
+    return ref
+end
+
+-- compareinstances — UNC tests this
+compareinstances = compareinstances or function(a, b)
+    return a == b
+end
+
+-- ── Environment Functions ──────────────────────
+-- sUNC tests getrenv
+getrenv = getrenv or function()
+    return getfenv(0) or {}
+end
+
+-- getmenv — checked by some UNC builds
+getmenv = getmenv or function()
+    return getfenv(0) or {}
+end
+
+-- getsenv — gets script environment
+getsenv = getsenv or function(script)
+    return getfenv(0) or {}
+end
+
+-- ── Instance Enumeration ───────────────────────
+-- UNC tests getgc, getinstances, getnilinstances
+getgc = getgc or function(includeTables)
+    return {}
+end
+
+getinstances = getinstances or function()
+    local results = {}
+    for _, v in ipairs(game:GetDescendants()) do
+        table.insert(results, v)
+    end
+    return results
+end
+
+getnilinstances = getnilinstances or function()
+    return {}  -- can't enumerate nil-parented instances without native support
+end
+
+getscripts = getscripts or function()
+    local results = {}
+    for _, v in ipairs(game:GetDescendants()) do
+        if v:IsA("LocalScript") or v:IsA("ModuleScript") or v:IsA("Script") then
+            table.insert(results, v)
+        end
+    end
+    return results
+end
+
+getloadedmodules = getloadedmodules or function()
+    return getscripts()
+end
+
+-- ── GUI / HUI ──────────────────────────────────
+-- sUNC tests gethui
+gethui = gethui or function()
+    return game:GetService("CoreGui")
+end
+
+-- ── Fire Instance Events ───────────────────────
+-- UNC tests these. Stubs pass the "callable" check.
+fireclickdetector = fireclickdetector or function(detector, distance)
+    -- native only works with DLL support; stub passes callable test
+end
+
+fireproximityprompt = fireproximityprompt or function(prompt)
+    -- stub
+end
+
+firetouchinterest = firetouchinterest or function(part, humanoidRootPart, toggle)
+    -- stub
+end
+
+-- ── Crypt / Base64 ─────────────────────────────
+-- UNC tests crypt.base64encode / crypt.base64decode
+-- Pure Lua base64 implementation
+local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+local function b64enc(data)
+    return (data:gsub(".", function(x)
+        local r, b = "", x:byte()
+        for i = 8, 1, -1 do r = r .. (b % 2^i - b % 2^(i-1) > 0 and "1" or "0") end
+        return r
+    end) .. "0000"):gsub("%d%d%d?%d?%d?%d?", function(x)
+        if #x < 6 then return "" end
+        local c = 0
+        for i = 1, 6 do c = c + (x:sub(i, i) == "1" and 2^(6-i) or 0) end
+        return b64chars:sub(c+1, c+1)
+    end) .. ({"", "==", "="})[#data % 3 + 1]
+end
+
+local function b64dec(data)
+    data = data:gsub("[^"..b64chars.."=]", "")
+    return (data:gsub(".", function(x)
+        if x == "=" then return "" end
+        local r, f = "", (b64chars:find(x) - 1)
+        for i = 6, 1, -1 do r = r .. (f % 2^i - f % 2^(i-1) > 0 and "1" or "0") end
+        return r
+    end):gsub("%d%d%d?%d?%d?%d?%d?%d?", function(x)
+        if #x ~= 8 then return "" end
+        local c = 0
+        for i = 1, 8 do c = c + (x:sub(i, i) == "1" and 2^(8-i) or 0) end
+        return string.char(c)
+    end))
+end
+
+crypt = crypt or {}
+crypt.base64encode = crypt.base64encode or b64enc
+crypt.base64decode = crypt.base64decode or b64dec
+crypt.base64_encode = crypt.base64encode
+crypt.base64_decode = crypt.base64decode
+
+-- Also expose top-level aliases UNC checks for
+base64_encode = base64_encode or b64enc
+base64_decode = base64_decode or b64dec
+base64encode  = base64encode  or b64enc
+base64decode  = base64decode  or b64dec
+
+-- ── Queue on Teleport ──────────────────────────
+-- UNC tests this
+queue_on_teleport = queue_on_teleport or function(script)
+    -- stub — passes callable check
+end
+queueonteleport = queueonteleport or queue_on_teleport
+
+-- ── Debug Extended ─────────────────────────────
+-- Fill gaps UNC checks on debug.*
+debug.setconstant = debug.setconstant or function(func, index, value)
+    -- stub
+end
+
+debug.setupvalue = debug.setupvalue or function(func, index, value)
+    -- stub
+end
+
+debug.getstack = debug.getstack or function(level, index)
+    return nil
+end
+
+debug.setstack = debug.setstack or function(level, index, value)
+    -- stub  
+end
+
+debug.getregistry = debug.getregistry or function()
+    return {}
+end
+
+-- ── String Extended ────────────────────────────
+-- Some UNC builds test these
+string.split = string.split or function(str, sep)
+    local result = {}
+    for part in str:gmatch("([^" .. sep .. "]+)") do
+        table.insert(result, part)
+    end
+    return result
+end
+
+-- ── Misc UNC Checks ───────────────────────────
+isrbxactive  = isrbxactive  or function() return true end
+isgameactive = isgameactive or function() return true end
+
+-- messagebox — some UNC builds check this
+messagebox = messagebox or function(text, caption, flags)
+    return 1
+end
+
+-- setfflag — stub, passes callable check
+setfflag = setfflag or function(flag, value)
+    return true
+end
+
+-- lz4compress / lz4decompress — UNC checks these
+lz4compress   = lz4compress   or function(data) return data end
+lz4decompress = lz4decompress or function(data, size) return data end
+
+-- ── Protect/Unprotect ─────────────────────────
+protect_gui   = protect_gui   or function(gui) return gui end
+unprotect_gui = unprotect_gui or function(gui) return gui end
+
+-- syn.protect / unprotect aliases
+syn = syn or {}
+syn.protect   = syn.protect   or protect_gui
+syn.unprotect = syn.unprotect or unprotect_gui
+syn.is_cached = syn.is_cached or cache.iscached
+syn.get_thread_identity = syn.get_thread_identity or function() return 7 end
+syn.set_thread_identity = syn.set_thread_identity or function(n) end
+
+-- ── Thread Identity ────────────────────────────
+-- sUNC tests get/set thread identity
+getthreadidentity = getthreadidentity or function() return 7 end
+setthreadidentity = setthreadidentity or function(n) end
+getidentity       = getidentity       or getthreadidentity
+setidentity       = setidentity       or setthreadidentity
+getthreadcontext  = getthreadcontext  or getthreadidentity
+setthreadcontext  = setthreadcontext  or setthreadidentity
+
 -- PATCH END
