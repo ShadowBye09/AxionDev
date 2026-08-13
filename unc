@@ -36,7 +36,7 @@ function hookmetamethod(v11,v12,v13)local v14=getgenv().getrawmetatable(v11);loc
 -- ── Executor Identity ──────────────────────────
 -- sUNC checks for this. Return whatever name you want.
 identifyexecutor = identifyexecutor or function()
-    return "Axion", "1.0"
+    return "UglyAPI", "1.0"
 end
 whatexecutor = whatexecutor or identifyexecutor
 
